@@ -8,7 +8,6 @@ const testUser = new User({
   email: 'test@example.com',
   totalPoints: 0,
   totalCo2SavingsPoints: 0,
-  currentPopulation: 0,
   isAdmin: false
 });
 
