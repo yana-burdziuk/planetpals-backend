@@ -14,5 +14,4 @@ const testUser = new User({
 
 testUser.save().then(() => {
   console.log('User saved');
-  process.exit();
 });
