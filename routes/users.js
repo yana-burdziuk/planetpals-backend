@@ -51,7 +51,7 @@ router.post("/signin", async (req, res) => {
     });
     //si les champs username/email/password sont vides
     if (!credentials || !password) {
-      return res.status(400).json({ error: "Missing fields" });
+      return res.status(400).json({ message: "Missing fields" });
     }
     // si on ne trouve pas le user, on affiche une erreur
     if (!user) {
@@ -61,12 +61,12 @@ router.post("/signin", async (req, res) => {
     const isMatched = await bcrypt.compare(password, user.password);
     // si le password ne match pas on affiche une erreur
     if (!isMatched) {
-      return res.status(400).json({ error: "Invalid credentials" });
+      return res.status(400).json({ message: "Invalid credentials" });
     }
     //else on fait le login
-    res.status(200).json({ message: "Login successful", user });
+    res.status(200).json({ result : true, user, message: "Login successful" });
   } catch (err) {
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ message: "Server error" });
   }
 });
 module.exports = router;
