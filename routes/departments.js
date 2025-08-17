@@ -28,7 +28,7 @@ router.post("/create", async (req, res) => {
   });
 });
 
-/* GET recuperer le departement existant => case sensitive */
+/* GET recuperer UN departement existant => case sensitive */
 
 router.get("/:name", async (req, res) => {
     const deptName = req.params.name;
@@ -39,5 +39,14 @@ router.get("/:name", async (req, res) => {
     res.json({ result: true, department })
 })
 
+/* GET recuperer tous les departements existants qui sont actifs */
+
+router.get("/", async (req, res) => {
+    const departements = await Department.find({ isActive: true });
+    res.json({
+        result: true,
+        departements,
+    })
+})
 
 module.exports = router;
