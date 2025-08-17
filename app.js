@@ -1,16 +1,17 @@
 require('dotenv').config();
-var express = require('express');
-var path = require('path');
-var cookieParser = require('cookie-parser');
-var logger = require('morgan');
-var cors = require('cors');
+const express = require('express');
+const path = require('path');
+const cookieParser = require('cookie-parser');
+const logger = require('morgan');
+const cors = require('cors');
 
 // Import des routes
-var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
-var photoRouter = require('./routes/photo')
+const indexRouter = require('./routes/index');
+const usersRouter = require('./routes/users');
+const photoRouter = require('./routes/photo')
+const deptRouter = require('./routes/departments')
 
-var app = express();
+const app = express();
 const fileUpload = require("express-fileupload")
 app.use(fileUpload())
 
@@ -25,11 +26,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Routes
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
-app.use('/photo', photoRouter)
+app.use('/photo', photoRouter);
+app.use('/depts', deptRouter);
 
 // Gestion d'erreurs simples
 app.use(function (req, res) {
-  res.status(404).json({ result: false, error: 'Route non trouvée' });
+  res.status(404).json({ result: false, error: 'API route not found' });
 });
 
 module.exports = app;

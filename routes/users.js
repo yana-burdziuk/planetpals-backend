@@ -11,7 +11,7 @@ router.post("/signup", async (req, res) => {
   // Vérifie si email déjà pris
   const existingUser = await User.findOne({ email });
   if (existingUser) {
-    return res.json({ result: false, error: "Email déjà utilisé" });
+    return res.json({ result: false, error: "Email is already used" });
   }
 
   // Hash du mot de passe
