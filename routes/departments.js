@@ -42,10 +42,10 @@ router.get("/:name", async (req, res) => {
 /* GET recuperer tous les departements existants qui sont actifs */
 
 router.get("/", async (req, res) => {
-    const departements = await Department.find({ isActive: true });
+    const departments = await Department.find({ isActive: true });
     res.json({
         result: true,
-        departements,
+        departments,
     })
 })
 

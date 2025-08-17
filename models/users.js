@@ -4,7 +4,12 @@ const userSchema = mongoose.Schema({
   username: String,
   email: String,
   password: String, // à hasher côté server
-  departmentId: String, // À modifier plus tard
+  departmentId: {
+    type: [mongoose.Schema.Types.ObjectId],
+    ref: "departments",
+    default: []
+  },
+  token : String,
   totalPoints: Number,
   totalCo2SavingsPoints: Number,
   collectedBadges: {
