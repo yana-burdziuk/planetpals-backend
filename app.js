@@ -8,6 +8,7 @@ var cors = require('cors');
 // Import des routes
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
+var challengesRouter = require('./routes/challenges'); 
 
 var app = express();
 
@@ -22,6 +23,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Routes
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
+app.use('/challenges', challengesRouter);
 
 // Gestion d'erreurs simples
 app.use(function (req, res) {
