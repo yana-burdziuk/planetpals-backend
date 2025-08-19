@@ -65,28 +65,41 @@ router.post("/signin", async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
     //else on fait le login
-    res.status(200).json({ result : true, user, token: user.token, message: "Login successful" });
+    res
+      .status(200)
+      .json({
+        result: true,
+        user,
+        token: user.token,
+        message: "Login successful",
+      });
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
 });
 
-
-// Middleware auth 
+// Middleware auth
 const authMiddleware = async (req, res, next) => {
   try {
+    // on récupère l’en-tête HTTP Auth
+    // l’optional chaining ? évite une erreur si le en-tête est absent (undefined)
+    // et on enlève le préfixe "Bearer " pour ne garder que le token
     const token = req.headers.authorization?.replace("Bearer ", "");
+    // si pas de token, ciao
     if (!token) return res.status(401).json({ message: "No token provided" });
-
+    // sinon on cherche en base le user avec ce token
     const user = await User.findOne({ token });
+    // si pas de user, ciao
     if (!user) return res.status(401).json({ message: "Invalid token" });
-
+// sinon on l'attache pour les req suivant
     req.user = user;
+    // next sert à passer la main à la requete suivante, sinon s'il y a un souci ça va rester bloqué indefiniment
     next();
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 // GET /users/me
 router.get("/me", authMiddleware, async (req, res) => {
   res.json({ username: req.user.username });
