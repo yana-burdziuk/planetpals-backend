@@ -39,6 +39,7 @@ router.post("/signup", async (req, res) => {
   });
 });
 
+//ROUTE SIGNIN
 // post et pas get car donnée sensibles, donc vaut mieux le faire dans le body
 router.post("/signin", async (req, res) => {
   const { credentials, password } = req.body;
@@ -64,9 +65,31 @@ router.post("/signin", async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
     //else on fait le login
-    res.status(200).json({ result : true, user, message: "Login successful" });
+    res.status(200).json({ result : true, user, token: user.token, message: "Login successful" });
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
 });
+
+
+// Middleware auth 
+const authMiddleware = async (req, res, next) => {
+  try {
+    const token = req.headers.authorization?.replace("Bearer ", "");
+    if (!token) return res.status(401).json({ message: "No token provided" });
+
+    const user = await User.findOne({ token });
+    if (!user) return res.status(401).json({ message: "Invalid token" });
+
+    req.user = user;
+    next();
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+// GET /users/me
+router.get("/me", authMiddleware, async (req, res) => {
+  res.json({ username: req.user.username });
+});
+
 module.exports = router;

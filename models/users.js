@@ -10,8 +10,8 @@ const userSchema = mongoose.Schema({
     default: []
   },
   token : String,
-  totalPoints: Number,
-  totalCo2SavingsPoints: Number,
+  totalPoints: { type: Number, default: 0 },
+  totalCo2SavingsPoints: { type: Number, default: 0 },
   collectedBadges: {
     type: [mongoose.Schema.Types.ObjectId],
     ref: "badges",
