@@ -5,9 +5,8 @@ const userSchema = mongoose.Schema({
   email: String,
   password: String, // à hasher côté server
   departmentId: {
-    type: [mongoose.Schema.Types.ObjectId],
+    type: mongoose.Schema.Types.ObjectId,
     ref: "departments",
-    default: []
   },
   token : String,
   totalPoints: { type: Number, default: 0 },
