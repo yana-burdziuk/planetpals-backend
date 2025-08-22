@@ -39,14 +39,23 @@ router.get("/:name", async (req, res) => {
     res.json({ result: true, department })
 })
 
-// GET recuperer tous les departements existants qui sont actifs
+// GET recuperer tous les departements existants qui sont actifs /depts
 
 router.get("/", async (req, res) => {
-    const departments = await Department.find({ isActive: true });
+  try {
+    const departments = await Department.find(
+      { isActive: true },
+      "name totalPoints" // champs qu'on veut recuperer
+    );
+
     res.json({
-        result: true,
-        departments,
-    })
+      result: true,
+      departments,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({result : false, error: "Server error"})
+  }
 })
 
 module.exports = router;
