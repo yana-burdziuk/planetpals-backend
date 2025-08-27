@@ -10,19 +10,25 @@ const Department = require("../models/departments");
 router.post("/signup", async (req, res) => {
   const { username, email, password, departmentId } = req.body;
 
-  // Vérifie si email déjà pris
-  const existingUser = await User.findOne({ email });
-  if (existingUser) {
-    return res.json({ result: false, error: "Email is already used" });
-  }
+// on verifie si le username est déjà pris
+const existingUsername = await User.findOne({ username: username.toLowerCase() });
+if (existingUsername) {
+  return res.json({ result: false, error: "Username is already used" });
+}
+
+// on verifie si email est déjà pris
+const existingEmail = await User.findOne({ email: email.toLowerCase() });
+if (existingEmail) {
+  return res.json({ result: false, error: "Email is already used" });
+}
 
   // Hash du mot de passe
   const hash = bcrypt.hashSync(password, 10);
 
   // Création utilisateur avec token
   const newUser = new User({
-    username,
-    email,
+    username : username.toLowerCase(),
+    email : email.toLowerCase(),
     password: hash,
     token: uid2(32),
     departmentId,
@@ -58,7 +64,10 @@ router.post("/signin", async (req, res) => {
 
     // vu qu'on cherche soit par email, soit par username, on utilise le opérateur $or
     const user = await User.findOne({
-      $or: [{ email: credentials }, { username: credentials }],
+      $or: [
+        { email: credentials.toLowerCase() },
+        { username: credentials.toLowerCase() }
+      ],
     });
 
     // si on ne trouve pas le user, on affiche une erreur

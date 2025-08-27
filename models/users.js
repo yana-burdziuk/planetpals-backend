@@ -1,8 +1,8 @@
 const mongoose = require("mongoose");
 
 const userSchema = mongoose.Schema({
-  username: String,
-  email: String,
+  username: { type: String, unique: true }, // username unique
+  email: { type: String, unique: true, lowercase: true },
   password: String, // à hasher côté server
   departmentId: {
     type: mongoose.Schema.Types.ObjectId,
