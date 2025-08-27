@@ -1,6 +1,7 @@
 // routes/challenges.js
 const express = require("express");
 const router = express.Router();
+const mongoose = require("mongoose");
 
 // Connexion + modèles
 require("../models/connection");
@@ -109,7 +110,9 @@ router.get("/userChallenges", authMiddleware, async (req, res) => {
     );
 
     const submissions = await Submission.find({ userId: req.user._id });
-    const completedIds = submissions.map((submission) => submission.planningChallengeId);
+    const completedIds = submissions.map(
+      (submission) => submission.planningChallengeId
+    );
 
     const challenges = plannings.map((planning) => ({
       planningId: planning._id,
@@ -121,7 +124,7 @@ router.get("/userChallenges", authMiddleware, async (req, res) => {
       points: planning.templateId.points,
       co2: planning.templateId.co2SavingsPoints,
       photoRequired: planning.templateId.photoRequired,
-      done: completedIds.includes((planning._id)),
+      done: completedIds.includes(planning._id),
     }));
 
     res.json({ result: true, challenges });
@@ -205,7 +208,41 @@ router.post("/:planningId/submit", authMiddleware, async (req, res) => {
 });
 
 /**
- * 5) Ajouter un commentaire
+ * 5) Delete la soumission du challenge  pour le user connecté
+ * DELETE /challenges/:planningId/submission
+ */
+
+router.delete("/:planningId/submission", authMiddleware, async (req, res) => {
+  try {
+    //planningChallengeId dans la collection Submission est un ObjectId
+    // et dans l’URL on envoie une string
+    //  MongoDB ne la matchera pas sans conversion
+
+    const planningChallengeId = new mongoose.Types.ObjectId(
+      req.params.planningId
+    );
+    const userId = req.user._id;
+
+    // on vérifie si une soumission du challenge existe
+    const submission = await Submission.findOne({
+      planningChallengeId,
+      userId,
+    });
+    if (!submission) {
+      return res.json({ result: false, error: "No submission found" });
+    }
+
+    // supprime  la soumission
+    await Submission.deleteOne({ _id: submission._id });
+
+    res.json({ result: true });
+  } catch (error) {
+    console.error("Error cancelling submission:", error);
+    res.json({ result: false, error: "Server error" });
+  }
+});
+/**
+ * 6) Ajouter un commentaire
  * POST /challenges/:planningId/comments
  * Body: { userId, text }
  */
@@ -235,7 +272,7 @@ router.post("/:planningId/comments", authMiddleware, async (req, res) => {
 });
 
 /**
- * 6) Lister les commentaires d’un challenge
+ * 7) Lister les commentaires d’un challenge
  * GET /challenges/:planningId/comments
  */
 router.get("/:planningId/comments", async (req, res) => {
