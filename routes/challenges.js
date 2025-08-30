@@ -10,6 +10,7 @@ const Planning = require("../models/planning_challenges"); // Modèle plannings
 const Submission = require("../models/challenge_submissions"); // Modèle participations
 const Comment = require("../models/comments"); // Modèle commentaires
 const User = require("../models/users");
+const Department = require("../models/departments");
 
 // Middleware d'auth
 
@@ -175,6 +176,51 @@ router.get("/active", async (req, res) => {
   }
 });
 
+
+
+  async function updateUserAndDepartmentPoints(userId, planningId, action = 'add') {
+  try {
+    const planning = await Planning.findById(planningId).populate('templateId');    
+    const user = await User.findById(userId);    
+    const points = planning.templateId.points;
+    const co2Points = planning.templateId.co2SavingsPoints;
+    
+    // on calcule la diff selon l'action (validation ou suppression)
+    const pointsDiff = action === 'add' ? points : -points;
+    const co2Diff = action === 'add' ? co2Points : -co2Points;
+    
+    // on met à jour le user
+    await User.findByIdAndUpdate(userId, {
+      $inc: {
+        totalPoints: pointsDiff,
+        totalCo2SavingsPoints: co2Diff
+      }
+    });
+    
+    // on recalcule les totaux pour le dept
+    const deptUsers = await User.find({ departmentId: user.departmentId });
+    const deptTotalPoints = deptUsers.reduce((sum, user) => sum + (user.totalPoints), 0);
+    const deptTotalCO2 = deptUsers.reduce((sum, user) => sum + (user.totalCo2SavingsPoints), 0);
+    
+    // on met à jour le dept
+    await Department.findByIdAndUpdate(user.departmentId, {
+      totalPoints: deptTotalPoints + pointsDiff,
+      totalCo2SavingsPoints: deptTotalCO2 + co2Diff
+    });
+    
+    // les valeurs que le front peut utiliser
+    const updatedUser = await User.findById(userId);
+    return {
+      userPoints: updatedUser.totalPoints,
+      userCO2: updatedUser.totalCo2SavingsPoints,
+      deptPoints: deptTotalPoints + pointsDiff,
+      deptCO2: deptTotalCO2 + co2Diff
+    };
+    
+  } catch (error) {
+    console.error('Error updating points:', error);
+  }
+}
 /**
  * 4) Valider le challenge pour le user connecté
  * POST /challenges/:planningId/submit
@@ -184,10 +230,19 @@ router.post("/:planningId/submit", authMiddleware, async (req, res) => {
   try {
     const { planningId } = req.params;
     const { photoUrl } = req.body;
-
     const userId = req.user._id; // user connecté
     const departmentId = req.user.departmentId;
+// on vérifie s'il y a déjà eu une validation
+    const existingSubmission = await Submission.findOne({
+      userId,
+      planningChallengeId: planningId
+    });
+    
+    if (existingSubmission) {
+      return res.json({ result: false, error: "Challenge already submitted" });
+    }
 
+    // sinon on crée un vaalidation
     const submission = await new Submission({
       userId,
       departmentId,
@@ -195,8 +250,18 @@ router.post("/:planningId/submit", authMiddleware, async (req, res) => {
       photoUrl: photoUrl || null,
       submittedAt: new Date(),
     }).save();
-    res.json({ result: true, planningId: submission.planningChallengeId });
+
+    // on met à jour les points (user + dept)
+    const pointsUpdate = await updateUserAndDepartmentPoints(userId, planningId, 'add');
+
+    res.json({ 
+      result: true, 
+      planningId: submission.planningChallengeId,
+      pointsUpdate // nouvelles valeurs
+    });
+    
   } catch (error) {
+    console.error("Error submitting challenge:", error);
     res.status(500).json({ result: false, error: error.message });
   }
 });
@@ -216,19 +281,27 @@ router.delete("/:planningId/submission", authMiddleware, async (req, res) => {
     );
     const userId = req.user._id;
 
-    // on vérifie si une soumission du challenge existe
+    // on vérifie si une validation du challenge existe
     const submission = await Submission.findOne({
       planningChallengeId,
       userId,
     });
+
     if (!submission) {
       return res.json({ result: false, error: "No submission found" });
     }
 
-    // supprime  la soumission
+    // on supprime la soumission
     await Submission.deleteOne({ _id: submission._id });
 
-    res.json({ result: true });
+    // on retire les points 
+    const pointsUpdate = await updateUserAndDepartmentPoints(userId, req.params.planningId, 'remove');
+
+    res.json({ 
+      result: true,
+      pointsUpdate // nouvelles valeurs des points
+    });
+    
   } catch (error) {
     console.error("Error cancelling submission:", error);
     res.json({ result: false, error: "Server error" });
@@ -354,5 +427,7 @@ router.post("/generate", async (req, res) => {
     res.status(500).json({ result: false, error: error.message });
   }
 });
+
+
 
 module.exports = router;

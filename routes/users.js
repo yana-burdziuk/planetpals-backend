@@ -27,8 +27,8 @@ if (existingEmail) {
 
   // Création utilisateur avec token
   const newUser = new User({
-    username : username.toLowerCase(),
-    email : email.toLowerCase(),
+    username: username.toLowerCase(),
+    email: email.toLowerCase(),
     password: hash,
     token: uid2(32),
     departmentId,
@@ -46,13 +46,13 @@ if (existingEmail) {
     username: newUser.username,
     email: newUser.email,
     departmentId: newUser.departmentId,
-    currentPoints : newUser.totalPoints,
+    currentPoints: newUser.totalPoints,
+    currentCO2: newUser.totalCo2SavingsPoints,
     message: "Signup successful",
   });
 });
 
-// ROUTE SIGNIN
-
+// ROUTE SIGNIN 
 router.post("/signin", async (req, res) => {
   const { credentials, password } = req.body;
 
@@ -68,7 +68,7 @@ router.post("/signin", async (req, res) => {
         { email: credentials.toLowerCase() },
         { username: credentials.toLowerCase() }
       ],
-    });
+    }).populate("departmentId", "name"); // on recupère le nom pour afficher ensuite dans MyTeam
 
     // si on ne trouve pas le user, on affiche une erreur
     if (!user) {
@@ -90,7 +90,9 @@ router.post("/signin", async (req, res) => {
       username: user.username,
       email: user.email,
       departmentId: user.departmentId,
-      currentPoints : user.totalPoints,
+      deptName : user.departmentId.name,
+      currentPoints: user.totalPoints,
+      currentCO2: user.totalCo2SavingsPoints,
       message: "Login successful",
     });
   } catch (err) {
@@ -140,7 +142,7 @@ router.get("/me", authMiddleware, async (req, res) => {
       result: true,
       username: user.username,
       email: user.email,
-      department: user.departmentId, // contient le nom et stats
+      department: user.departmentId,
       userTotalPoints: user.totalPoints,
       userTotalCo2SavingsPoints: user.totalCo2SavingsPoints,
     });
