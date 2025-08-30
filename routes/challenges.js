@@ -270,7 +270,6 @@ router.post("/:planningId/submit", authMiddleware, async (req, res) => {
  * 5) Delete la soumission du challenge  pour le user connecté
  * DELETE /challenges/:planningId/submission
  */
-
 router.delete("/:planningId/submission", authMiddleware, async (req, res) => {
   try {
     //planningChallengeId dans la collection Submission est un ObjectId
@@ -308,31 +307,32 @@ router.delete("/:planningId/submission", authMiddleware, async (req, res) => {
     res.json({ result: false, error: "Server error" });
   }
 });
+
 /**
  * 6) Ajouter un commentaire
  * POST /challenges/:planningId/comments
- * Body: { userId, text }
+ * Body: { userId, content }
  */
 router.post("/:planningId/comments", authMiddleware, async (req, res) => {
   try {
     const { planningId } = req.params;
-    const { text } = req.body;
+    const { content } = req.body;
     const userId = req.user._id; // user connecté
 
-    if (!userId || !text) {
+    if (!userId || !content) {
       return res
         .status(400)
-        .json({ result: false, error: "userId and text required" });
+        .json({ result: false, error: "userId and content required" });
     }
 
-    const comment = new Comment({
+    const comment = await new Comment({
       userId,
       planningChallengeId: planningId,
-      text,
+      content,
       createdAt: new Date(),
     }).save();
 
-    res.json({ result: true, commentId: doc._id });
+    res.json({ result: true, commentId: comment._id });
   } catch (error) {
     res.status(500).json({ result: false, error: error.message });
   }
@@ -350,11 +350,38 @@ router.get("/:planningId/comments", async (req, res) => {
 
     const formatted = comments.map((c) => ({
       user: c.userId?.username || "Anonyme",
-      text: c.text,
+      content: c.content,
       createdAt: c.createdAt,
     }));
 
     res.json({ result: true, comments: formatted });
+  } catch (error) {
+    res.status(500).json({ result: false, error: error.message });
+  }
+});
+
+/**
+ * 8) Lister l’activité d’un challenge (submissions avec photo)
+ * GET /challenges/:planningId/activity
+ * -> Retourne les envois (photos) liés à ce planning, récents d’abord
+ */
+router.get("/:planningId/activity", async (req, res) => {
+  try {
+    const rows = await Submission.find({
+      planningChallengeId: req.params.planningId,
+      photoUrl: { $ne: null }, // on ne garde que les items avec photo
+    })
+      .populate("userId", "username")
+      .sort({ submittedAt: -1 }); // plus récent en premier
+
+    const activity = rows.map((s) => ({
+      user: s.userId?.username || "Anonyme",
+      type: "photo",                 // simple: une seule sorte d’activité pour l’instant
+      photoUrl: s.photoUrl,
+      submittedAt: s.submittedAt,
+    }));
+
+    res.json({ result: true, activity });
   } catch (error) {
     res.status(500).json({ result: false, error: error.message });
   }
