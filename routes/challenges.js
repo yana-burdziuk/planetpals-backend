@@ -111,9 +111,10 @@ router.get("/userChallenges", authMiddleware, async (req, res) => {
     );
 
     const submissions = await Submission.find({ userId: req.user._id });
-    const completedIds = submissions.map(
-      (submission) => submission.planningChallengeId
-    );
+    // toString car ObjectId de MongoDB n’est pas un simple string, c’est un objet
+    //  si deux ObjectId representent le meme identifiant, JS les considère differents si ce sont deux objets differents
+    // .includes() utilise === pour comparer les elements, donc le string va simplifier 
+    const completedIds = submissions.map(submission => submission.planningChallengeId.toString());
 
     const challenges = plannings.map((planning) => ({
       planningId: planning._id,
@@ -125,7 +126,7 @@ router.get("/userChallenges", authMiddleware, async (req, res) => {
       points: planning.templateId.points,
       co2: planning.templateId.co2SavingsPoints,
       photoRequired: planning.templateId.photoRequired,
-      done: completedIds.includes(planning._id),
+      done: completedIds.includes(planning._id.toString()),
     }));
 
     res.json({ result: true, challenges });
