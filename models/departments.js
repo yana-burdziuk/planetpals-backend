@@ -1,10 +1,22 @@
 const mongoose = require("mongoose");
 
 const departmentSchema = mongoose.Schema({
-  name: String,
-  totalPoints: Number,
-  totalCo2SavingsPoints: Number,
-  isActive: Boolean,
+  name: {
+    type: String,
+    required: true,
+  },
+  totalPoints: {
+    type: Number,
+    required: true,
+  },
+  totalCo2SavingsPoints: {
+    type: Number,
+    required: true,
+  },
+  isActive: {
+    type: Boolean,
+    required: true,
+  },
 });
 
 const Department = mongoose.model("departments", departmentSchema);
