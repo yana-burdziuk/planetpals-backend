@@ -39,7 +39,7 @@ if (existingEmail) {
   });
 
   await newUser.save();
-
+  
   res.json({
     result: true,
     token: newUser.token,

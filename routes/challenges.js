@@ -37,12 +37,12 @@ router.post("/templates", async (req, res) => {
   try {
     const challengeData = {
       title: req.body.title || "New challenge",
-      description: req.body.description || "Description…",
+      description: req.body.description || "Description...",
       points: req.body.points,
       co2SavingsPoints: req.body.co2SavingsPoints,
       photoRequired: req.body.photoRequired,
-      funFact: req.body.funFact,
-      whyImportant: req.body.whyImportant,
+      funFact: req.body.funFact || "Still waiting...",
+      whyImportant: req.body.whyImportant|| "Dying to know!",
     };
 
     const template = await new Template(challengeData).save();

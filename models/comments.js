@@ -4,11 +4,13 @@ const commentsSchema = mongoose.Schema({
   planningChallengeId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "plannings",
+    required: true,
   },
   content: String,
-    userId: {
+  userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "users",
+    required: true,
   },
 });
 
