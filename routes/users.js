@@ -5,22 +5,21 @@ const uid2 = require("uid2");
 const User = require("../models/users");
 const Department = require("../models/departments");
 
-// ROUTE SIGNUP
-
+// ROUTE SIGNUP (normal - mobile, isAdmin: false, departmentId requis)
 router.post("/signup", async (req, res) => {
   const { username, email, password, departmentId } = req.body;
 
-// on verifie si le username est déjà pris
-const existingUsername = await User.findOne({ username: username.toLowerCase() });
-if (existingUsername) {
-  return res.json({ result: false, error: "Username is already used" });
-}
+  // on verifie si le username est déjà pris
+  const existingUsername = await User.findOne({ username: username.toLowerCase() });
+  if (existingUsername) {
+    return res.json({ result: false, error: "Username is already used" });
+  }
 
-// on verifie si email est déjà pris
-const existingEmail = await User.findOne({ email: email.toLowerCase() });
-if (existingEmail) {
-  return res.json({ result: false, error: "Email is already used" });
-}
+  // on verifie si email est déjà pris
+  const existingEmail = await User.findOne({ email: email.toLowerCase() });
+  if (existingEmail) {
+    return res.json({ result: false, error: "Email is already used" });
+  }
 
   // Hash du mot de passe
   const hash = bcrypt.hashSync(password, 10);
@@ -35,11 +34,11 @@ if (existingEmail) {
     totalPoints: 0,
     totalCo2SavingsPoints: 0,
     collectedBadges: [],
-    isAdmin: false,
+    isAdmin: false, // force user normal
   });
 
   await newUser.save();
-  
+
   res.json({
     result: true,
     token: newUser.token,
@@ -49,6 +48,45 @@ if (existingEmail) {
     currentPoints: newUser.totalPoints,
     currentCO2: newUser.totalCo2SavingsPoints,
     message: "Signup successful",
+  });
+});
+
+// ROUTE ADMIN SIGNUP (web - pas de departmentId, isAdmin: true)
+router.post("/admin-signup", async (req, res) => {
+  const { username, email, password } = req.body;
+
+  // Vérif doublons
+  const existingUsername = await User.findOne({ username: username.toLowerCase() });
+  if (existingUsername) {
+    return res.json({ result: false, error: "Username is already used" });
+  }
+
+  const existingEmail = await User.findOne({ email: email.toLowerCase() });
+  if (existingEmail) {
+    return res.json({ result: false, error: "Email is already used" });
+  }
+
+  // Hash du mot de passe
+  const hash = bcrypt.hashSync(password, 10);
+
+  // Création admin (sans departmentId)
+  const newAdmin = new User({
+    username: username.toLowerCase(),
+    email: email.toLowerCase(),
+    password: hash,
+    token: uid2(32),
+    isAdmin: true, // force admin
+  });
+
+  await newAdmin.save();
+
+  res.json({
+    result: true,
+    token: newAdmin.token,
+    username: newAdmin.username,
+    email: newAdmin.email,
+    isAdmin: newAdmin.isAdmin,
+    message: "Admin signup successful",
   });
 });
 
@@ -90,9 +128,10 @@ router.post("/signin", async (req, res) => {
       username: user.username,
       email: user.email,
       departmentId: user.departmentId,
-      deptName : user.departmentId.name,
+      deptName : user.departmentId?.name, // safe si admin sans dept
       currentPoints: user.totalPoints,
       currentCO2: user.totalCo2SavingsPoints,
+      isAdmin: user.isAdmin,
       message: "Login successful",
     });
   } catch (err) {
@@ -101,27 +140,15 @@ router.post("/signin", async (req, res) => {
 });
 
 // MIDDLEWARE AUTH
-
 const authMiddleware = async (req, res, next) => {
   try {
-    // on récupère l’en-tête HTTP Auth
-    // l’optional chaining ? évite une erreur si le en-tête est absent (undefined)
-    // et on enlève le préfixe "Bearer " pour ne garder que le token
     const token = req.headers.authorization?.replace("Bearer ", "");
-
-    // si pas de token, ciao
     if (!token) return res.status(401).json({ message: "No token provided" });
 
-    // sinon on cherche en base le user avec ce token
     const user = await User.findOne({ token });
-
-    // si pas de user, ciao
     if (!user) return res.status(401).json({ message: "Invalid token" });
 
-    // sinon on l'attache pour les req suivant
     req.user = user;
-
-    // next sert à passer la main à la requete suivante, sinon s'il y a un souci ça va rester bloqué indefiniment
     next();
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
@@ -145,6 +172,7 @@ router.get("/me", authMiddleware, async (req, res) => {
       department: user.departmentId,
       userTotalPoints: user.totalPoints,
       userTotalCo2SavingsPoints: user.totalCo2SavingsPoints,
+      isAdmin: user.isAdmin,
     });
   } catch (err) {
     console.error(err);
@@ -153,31 +181,21 @@ router.get("/me", authMiddleware, async (req, res) => {
 });
 
 // GET /users/team
-
 router.get("/team", authMiddleware, async (req, res) => {
   try {
-    // on recupere le dept de user connecté
     const userDept = req.user.departmentId;
 
-    // on recupère les users qui ont ce dept en commun
     const teamMembers = await User.find({ departmentId: userDept })
-
-      // on n'a besoin de recup que ces champs de chaque user
       .select("username totalPoints totalCo2SavingsPoints")
-      // pour recup le nom du departement
       .populate("departmentId", "name");
-    // comme c'est le même depts pour tout le monde on peut recup le premier
-    const deptName = teamMembers[0]?.departmentId?.name;
 
-    // calcul des points totaux et mise à jour la DB 
+    const deptName = teamMembers[0]?.departmentId?.name;
 
     const totalPoints = teamMembers.reduce((sum, m) => sum + m.totalPoints, 0);
     const totalCO2 = teamMembers.reduce(
       (sum, m) => sum + m.totalCo2SavingsPoints,
       0
     );
-
-    // on met à jour la DB Department avec les points
 
     await Department.findByIdAndUpdate(userDept, {
       name: deptName,

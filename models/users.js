@@ -19,7 +19,7 @@ const userSchema = mongoose.Schema({
   departmentId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "departments",
-    required : true
+    required : function () { return !this.isAdmin } // requis seulement si pas admin
   },
   token: {
     type: String,
@@ -40,7 +40,7 @@ const userSchema = mongoose.Schema({
   },
   isAdmin: {
     type: Boolean,
-    required: true
+    default: false, // pas besoin de required
   }
 });
 
