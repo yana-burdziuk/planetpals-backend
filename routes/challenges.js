@@ -205,8 +205,8 @@ router.get("/active", async (req, res) => {
     
     // on met à jour le dept
     await Department.findByIdAndUpdate(user.departmentId, {
-      totalPoints: deptTotalPoints + pointsDiff,
-      totalCo2SavingsPoints: deptTotalCO2 + co2Diff
+      totalPoints: deptTotalPoints,
+      totalCo2SavingsPoints: deptTotalCO2
     });
     
     // les valeurs que le front peut utiliser
@@ -257,7 +257,7 @@ router.post("/:planningId/submit", authMiddleware, async (req, res) => {
 
     res.json({ 
       result: true, 
-      planningId: submission.planningChallengeId,
+      planningId: submission.planningChallengeId.toString(), //si dans Redux on stock planningId comme string mais que dans la réponse c’est un ObjectId la comparaison va echouer et l’état Done ne sera jamais mis à jour
       pointsUpdate // nouvelles valeurs
     });
     
