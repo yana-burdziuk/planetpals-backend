@@ -200,8 +200,8 @@ router.get("/active", async (req, res) => {
     
     // on recalcule les totaux pour le dept
     const deptUsers = await User.find({ departmentId: user.departmentId });
-    const deptTotalPoints = deptUsers.reduce((sum, user) => sum + (user.totalPoints), 0);
-    const deptTotalCO2 = deptUsers.reduce((sum, user) => sum + (user.totalCo2SavingsPoints), 0);
+    const deptTotalPoints = Math.max(deptUsers.reduce((sum, user) => sum + user.totalPoints, 0)); // pour éviter les négatifs
+    const deptTotalCO2 = Math.max(deptUsers.reduce((sum, user) => sum + user.totalCo2SavingsPoints, 0));
     
     // on met à jour le dept
     await Department.findByIdAndUpdate(user.departmentId, {
@@ -214,8 +214,8 @@ router.get("/active", async (req, res) => {
     return {
       userPoints: updatedUser.totalPoints,
       userCO2: updatedUser.totalCo2SavingsPoints,
-      deptPoints: deptTotalPoints + pointsDiff,
-      deptCO2: deptTotalCO2 + co2Diff
+      deptPoints: deptTotalPoints,
+      deptCO2: deptTotalCO2
     };
     
   } catch (error) {

@@ -10,7 +10,9 @@ router.post("/signup", async (req, res) => {
   const { username, email, password, departmentId } = req.body;
 
   // on verifie si le username est déjà pris
-  const existingUsername = await User.findOne({ username: username.toLowerCase() });
+  const existingUsername = await User.findOne({
+    username: username.toLowerCase(),
+  });
   if (existingUsername) {
     return res.json({ result: false, error: "Username is already used" });
   }
@@ -56,7 +58,9 @@ router.post("/admin-signup", async (req, res) => {
   const { username, email, password } = req.body;
 
   // Vérif doublons
-  const existingUsername = await User.findOne({ username: username.toLowerCase() });
+  const existingUsername = await User.findOne({
+    username: username.toLowerCase(),
+  });
   if (existingUsername) {
     return res.json({ result: false, error: "Username is already used" });
   }
@@ -90,7 +94,7 @@ router.post("/admin-signup", async (req, res) => {
   });
 });
 
-// ROUTE SIGNIN 
+// ROUTE SIGNIN
 router.post("/signin", async (req, res) => {
   const { credentials, password } = req.body;
 
@@ -104,7 +108,7 @@ router.post("/signin", async (req, res) => {
     const user = await User.findOne({
       $or: [
         { email: credentials.toLowerCase() },
-        { username: credentials.toLowerCase() }
+        { username: credentials.toLowerCase() },
       ],
     }).populate("departmentId", "name"); // on recupère le nom pour afficher ensuite dans MyTeam
 
@@ -128,7 +132,7 @@ router.post("/signin", async (req, res) => {
       username: user.username,
       email: user.email,
       departmentId: user.departmentId,
-      deptName : user.departmentId?.name, // safe si admin sans dept
+      deptName: user.departmentId?.name, // safe si admin sans dept
       currentPoints: user.totalPoints,
       currentCO2: user.totalCo2SavingsPoints,
       isAdmin: user.isAdmin,
@@ -189,14 +193,16 @@ router.get("/team", authMiddleware, async (req, res) => {
       .select("username totalPoints totalCo2SavingsPoints")
       .populate("departmentId", "name");
 
+    // recup du nom du dept
     const deptName = teamMembers[0]?.departmentId?.name;
 
+    // calcul des totaux
     const totalPoints = teamMembers.reduce((sum, m) => sum + m.totalPoints, 0);
     const totalCO2 = teamMembers.reduce(
       (sum, m) => sum + m.totalCo2SavingsPoints,
       0
     );
-
+    // mise à jour du document Department
     await Department.findByIdAndUpdate(userDept, {
       name: deptName,
       totalPoints: totalPoints,
@@ -206,7 +212,11 @@ router.get("/team", authMiddleware, async (req, res) => {
     res.json({
       result: true,
       teamMembers,
-      departmentStats: { deptName, totalPoints, totalCO2 },
+      departmentStats: {
+        deptName,
+        totalPoints,
+        totalCO2,
+      },
     });
   } catch (error) {
     console.log(error);
