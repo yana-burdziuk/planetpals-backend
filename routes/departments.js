@@ -47,16 +47,6 @@ router.post("/create", async (req, res) => {
   });
 });
 
-/* GET recuperer UN departement existant => case sensitive */
-
-router.get("/:name", async (req, res) => {
-    const deptName = req.params.name;
-    const department = await Department.findOne({ name: deptName });
-    if (!department) {
-        return res.json({result : false, error: "Department not found"})
-    }
-    res.json({ result: true, department })
-})
 
 // GET recuperer tous les departements existants qui sont actifs /depts
 
@@ -103,8 +93,9 @@ router.post("/recalculate-departments", async (req, res) => {
     
     for (const dept of departments) {
       const users = await User.find({ departmentId: dept._id });
-      const totalPoints = users.reduce((sum, user) => sum + (user.totalPoints), 0); // on parcourt le tableau users et cumule la valeur de totalPoints de chaque user
-      const totalCO2 = users.reduce((sum, user) => sum + (user.totalCo2SavingsPoints), 0); //sum commence à 0 et on ajoute user.totalPoints à chaque itération
+      const totalPoints = Math.max(users.reduce((sum, user) => sum + user.totalPoints, 0)); // on parcourt le tableau users et cumule la valeur de totalPoints de chaque user
+      const totalCO2 = Math.max(users.reduce((sum, user) => sum + user.totalCo2SavingsPoints, 0)); //sum commence à 0 et on ajoute user.totalPoints à chaque itération
+      // Math.max(a, b) renvoie le plus grand entre a et b donc ça nous évite les valeurs negatives
       
       await Department.findByIdAndUpdate(dept._id, {
         totalPoints,
@@ -117,5 +108,16 @@ router.post("/recalculate-departments", async (req, res) => {
     res.status(500).json({ result: false, error: error.message });
   }
 });
+
+/* GET recuperer UN departement existant => case sensitive */
+
+router.get("/:name", async (req, res) => {
+    const deptName = req.params.name;
+    const department = await Department.findOne({ name: deptName });
+    if (!department) {
+        return res.json({result : false, error: "Department not found"})
+    }
+    res.json({ result: true, department })
+})
 
 module.exports = router;
