@@ -31,7 +31,7 @@ async function authMiddleware(req, res, next) {
 /**
  * 1) Créer un modèle de challenge (template)
  * POST /challenges/templates
- * Body: { title, description, points, co2SavingsPoints, photoRequired }
+ * Body: { title, description, points, co2SavingsPoints, photoRequired, funFact, whyImportant }
  */
 router.post("/templates", async (req, res) => {
   try {
@@ -45,7 +45,8 @@ router.post("/templates", async (req, res) => {
       whyImportant: req.body.whyImportant|| "Dying to know!",
     };
 
-    const template = await new Template(challengeData).save();
+    const template = await new Template(challengeData)
+    .save();
     res.json({ result: true, templateId: template._id });
   } catch (error) {
     res.status(500).json({ result: false, error: error.message });
@@ -72,13 +73,25 @@ router.post("/", async (req, res) => {
       return res
         .status(404)
         .json({ result: false, error: "Template not found" });
+    
+    // Définir la durée par défaut selon la fréquence si days non fourni
+    let durationDays;
+    switch (frequency) {
+      case "daily":
+        durationDays = days || 1; // par défaut 1 jour
+        break;
+      case "weekly":
+        durationDays = days || 7; // par défaut 7 jours
+        break;
+      default:
+        return res
+          .status(400)
+          .json({ result: false, error: "Invalid frequency" });
+    }
+
 
     // Gestion de la date d’expiration
-    let expiresAt;
-    if (days) {
-      const ONE_DAY_MS = 24 * 60 * 60 * 1000; // 1 jour en millisecondes
-      expiresAt = new Date(Date.now() + days * ONE_DAY_MS);
-    }
+    let expiresAt = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000);  // 1 jour en millisecondes
 
     const planning = await new Planning({
       templateId,
@@ -94,14 +107,14 @@ router.post("/", async (req, res) => {
   }
 });
 
-// /challenges/userChallenges
-// liste les challenges actifs + validés du user connecté
-// la route qu'on utilisera sur l'app front
+/**
+ * 3) Recuperer les challenges actifs + validés du user connecté
+ * GET /challenges/userChallenges
+ */
 
 router.get("/userChallenges", authMiddleware, async (req, res) => {
   try {
     const now = new Date();
-
     const plannings = await Planning.find({
       isActive: true,
       expiresAt: { $gte: now },
@@ -136,7 +149,7 @@ router.get("/userChallenges", authMiddleware, async (req, res) => {
 });
 
 /**
- * 3) Lister les challenges actifs
+ * 4) Lister les challenges actifs
 liste tous les challenges actifs (sans tenir compte du user connecté)
 utile pour la page d'admin
  * GET /challenges/active */
@@ -177,7 +190,9 @@ router.get("/active", async (req, res) => {
   }
 });
 
-
+/* Fonction utile pour calculer les points des users et des depts
+Les routes en dessous en auront besoin
+*/
 
   async function updateUserAndDepartmentPoints(userId, planningId, action = 'add') {
   try {
@@ -222,8 +237,9 @@ router.get("/active", async (req, res) => {
     console.error('Error updating points:', error);
   }
 }
+
 /**
- * 4) Valider le challenge pour le user connecté
+ * 5) Valider le challenge pour le user connecté
  * POST /challenges/:planningId/submit
  * Body: { userId, departmentId, photoUrl }
  */
@@ -233,6 +249,7 @@ router.post("/:planningId/submit", authMiddleware, async (req, res) => {
     const { photoUrl } = req.body;
     const userId = req.user._id; // user connecté
     const departmentId = req.user.departmentId;
+
 // on vérifie s'il y a déjà eu une validation
     const existingSubmission = await Submission.findOne({
       userId,
@@ -268,7 +285,7 @@ router.post("/:planningId/submit", authMiddleware, async (req, res) => {
 });
 
 /**
- * 5) Delete la soumission du challenge  pour le user connecté
+ * 6) Delete la soumission du challenge  pour le user connecté
  * DELETE /challenges/:planningId/submission
  */
 router.delete("/:planningId/submission", authMiddleware, async (req, res) => {
@@ -310,7 +327,7 @@ router.delete("/:planningId/submission", authMiddleware, async (req, res) => {
 });
 
 /**
- * 6) Ajouter un commentaire
+ * 7) Ajouter un commentaire
  * POST /challenges/:planningId/comments
  * Body: { userId, content }
  */
@@ -340,7 +357,7 @@ router.post("/:planningId/comments", authMiddleware, async (req, res) => {
 });
 
 /**
- * 7) Lister les commentaires d’un challenge
+ * 8) Lister les commentaires d’un challenge
  * GET /challenges/:planningId/comments
  */
 router.get("/:planningId/comments", async (req, res) => {
@@ -362,7 +379,7 @@ router.get("/:planningId/comments", async (req, res) => {
 });
 
 /**
- * 8) Lister l’activité d’un challenge (submissions avec photo)
+ * 9) Lister l’activité d’un challenge (submissions avec photo)
  * GET /challenges/:planningId/activity
  * -> Retourne les envois (photos) liés à ce planning, récents d’abord
  */
