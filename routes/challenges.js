@@ -54,9 +54,9 @@ router.post("/templates", async (req, res) => {
 });
 
 /**
- * 2) Activer un challenge (planning) à partir d’un template
+ * 2) Ajouter un challenge au planning à partir d’un template, selon la frequence
  * POST /challenges
- * Body: { templateId, days }
+ * Body: { templateId, days, frequency }
  */
 router.post("/", async (req, res) => {
   try {
@@ -74,21 +74,18 @@ router.post("/", async (req, res) => {
         .status(404)
         .json({ result: false, error: "Template not found" });
     
-    // Définir la durée par défaut selon la fréquence si days non fourni
+    // on définit la durée par défaut selon la fréquence si days non fourni
     let durationDays;
     switch (frequency) {
       case "daily":
-        durationDays = days || 1; // par défaut 1 jour
+        durationDays = days || 1; // 1 jour par défaut 
         break;
       case "weekly":
-        durationDays = days || 7; // par défaut 7 jours
+        durationDays = days || 7; // 7 jours par défaut 
         break;
       default:
-        return res
-          .status(400)
-          .json({ result: false, error: "Invalid frequency" });
+        return res.status(400).json({ result: false, error: "Invalid frequency" });
     }
-
 
     // Gestion de la date d’expiration
     let expiresAt = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000);  // 1 jour en millisecondes
@@ -117,7 +114,7 @@ router.get("/userChallenges", authMiddleware, async (req, res) => {
     const now = new Date();
     const plannings = await Planning.find({
       isActive: true,
-      expiresAt: { $gte: now },
+      expiresAt: { $gte: now }, // gte operateur c'est Greater Than or Equal
     }).populate(
       "templateId",
       "title description funFact whyImportant points co2SavingsPoints photoRequired frequency"
@@ -260,7 +257,7 @@ router.post("/:planningId/submit", authMiddleware, async (req, res) => {
       return res.json({ result: false, error: "Challenge already submitted" });
     }
 
-    // sinon on crée un vaalidation
+    // sinon on crée une validation
     const submission = await new Submission({
       userId,
       departmentId,
@@ -366,10 +363,10 @@ router.get("/:planningId/comments", async (req, res) => {
       planningChallengeId: req.params.planningId,
     }).populate("userId", "username"); // on récupère juste le nom de l'auteur
 
-    const formatted = comments.map((c) => ({
-      user: c.userId?.username || "Anonyme",
-      content: c.content,
-      createdAt: c.createdAt,
+    const formatted = comments.map((comment) => ({
+      user: comment.userId?.username || "Anonymous",
+      content: comment.content,
+      createdAt: comment.createdAt,
     }));
 
     res.json({ result: true, comments: formatted });
@@ -393,7 +390,7 @@ router.get("/:planningId/activity", async (req, res) => {
       .sort({ submittedAt: -1 }); // plus récent en premier
 
     const activity = rows.map((s) => ({
-      user: s.userId?.username || "Anonyme",
+      user: s.userId?.username || "Anonymous",
       type: "photo",                 // simple: une seule sorte d’activité pour l’instant
       photoUrl: s.photoUrl,
       submittedAt: s.submittedAt,
@@ -405,7 +402,7 @@ router.get("/:planningId/activity", async (req, res) => {
   }
 });
 
-/*---------------------UTILE---------------------------*/
+/*---------------------UTILE POUR LES TESTS---------------------------*/
 
 // generer le plannning des challenges daily & weekly
 // /challenges/generate (tous les challenges de la DB templates seront crée en daily et en weekly pour la DB planning)
