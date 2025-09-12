@@ -8,7 +8,6 @@ const cors = require('cors');
 const fileUpload = require('express-fileupload');
 
 // Import des routes
-const indexRouter = require('./routes/index');
 const usersRouter = require('./routes/users');
 const photoRouter = require('./routes/photo');
 const deptRouter = require('./routes/departments');
@@ -26,7 +25,6 @@ app.use(fileUpload());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Routes
-app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/photo', photoRouter);
 app.use('/depts', deptRouter);
