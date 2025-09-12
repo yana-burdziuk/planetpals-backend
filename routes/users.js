@@ -5,7 +5,8 @@ const uid2 = require("uid2");
 const User = require("../models/users");
 const Department = require("../models/departments");
 
-// ROUTE SIGNUP (normal - mobile, isAdmin: false, departmentId requis)
+// ROUTE SIGNUP  /users/signup
+// (normal - mobile, isAdmin: false, departmentId requis)
 router.post("/signup", async (req, res) => {
   const { username, email, password, departmentId } = req.body;
 
@@ -53,7 +54,9 @@ router.post("/signup", async (req, res) => {
   });
 });
 
-// ROUTE ADMIN SIGNUP (web - pas de departmentId, isAdmin: true)
+// ROUTE ADMIN SIGNUP
+// /users/admin-signup
+// (web - pas de departmentId, isAdmin: true)
 router.post("/admin-signup", async (req, res) => {
   const { username, email, password } = req.body;
 
@@ -95,6 +98,7 @@ router.post("/admin-signup", async (req, res) => {
 });
 
 // ROUTE SIGNIN
+// /users/signin
 router.post("/signin", async (req, res) => {
   const { credentials, password } = req.body;
 
@@ -151,15 +155,15 @@ const authMiddleware = async (req, res, next) => {
 
     const user = await User.findOne({ token });
     if (!user) return res.status(401).json({ message: "Invalid token" });
-
     req.user = user;
     next();
-  } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
 // GET /users/me
+// recuperer les infos du user connecté, utile pour Profile
 router.get("/me", authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).populate(
@@ -178,13 +182,14 @@ router.get("/me", authMiddleware, async (req, res) => {
       userTotalCo2SavingsPoints: user.totalCo2SavingsPoints,
       isAdmin: user.isAdmin,
     });
-  } catch (err) {
-    console.error(err);
+  } catch (error) {
+    console.error(error);
     res.status(500).json({ error: "Server error" });
   }
 });
 
 // GET /users/team
+// recuperer la liste des users dans le departement du user connecté (user centric)
 router.get("/team", authMiddleware, async (req, res) => {
   try {
     const userDept = req.user.departmentId;
@@ -197,11 +202,8 @@ router.get("/team", authMiddleware, async (req, res) => {
     const deptName = teamMembers[0]?.departmentId?.name;
 
     // calcul des totaux
-    const totalPoints = teamMembers.reduce((sum, m) => sum + m.totalPoints, 0);
-    const totalCO2 = teamMembers.reduce(
-      (sum, m) => sum + m.totalCo2SavingsPoints,
-      0
-    );
+    const totalPoints = teamMembers.reduce((sum, member) => sum + member.totalPoints, 0);
+    const totalCO2 = teamMembers.reduce((sum, member) => sum + member.totalCo2SavingsPoints,0);
     // mise à jour du document Department
     await Department.findByIdAndUpdate(userDept, {
       name: deptName,
