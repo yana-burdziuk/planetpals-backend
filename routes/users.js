@@ -203,7 +203,8 @@ router.get("/team", authMiddleware, async (req, res) => {
 
     // calcul des totaux
     const totalPoints = teamMembers.reduce((sum, member) => sum + member.totalPoints, 0);
-    const totalCO2 = teamMembers.reduce((sum, member) => sum + member.totalCo2SavingsPoints,0);
+    const totalCO2 = teamMembers.reduce((sum, member) => sum + member.totalCo2SavingsPoints, 0);
+    
     // mise à jour du document Department
     await Department.findByIdAndUpdate(userDept, {
       name: deptName,
